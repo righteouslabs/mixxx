@@ -12,6 +12,7 @@
 #include "widget/wskincolor.h"
 #include "widget/wwidget.h"
 #include "widget/wimagestore.h"
+#include "util/painterscope.h"
 
 namespace {
     const int kMaxCueLabelLength = 23;
@@ -33,7 +34,7 @@ void WaveformRenderMark::setup(const QDomNode& node, const SkinContext& context)
 }
 
 void WaveformRenderMark::draw(QPainter* painter, QPaintEvent* /*event*/) {
-    painter->save();
+    PainterScope PainterScope(painter);
 
     /*
     //DEBUG
@@ -48,6 +49,10 @@ void WaveformRenderMark::draw(QPainter* painter, QPaintEvent* /*event*/) {
     for (const auto& pMark: m_marks) {
         if (!pMark->isValid())
             continue;
+
+        if (pMark->hasVisible() && !pMark->isVisible()) {
+            continue;
+        }
 
         // Generate image on first paint can't be done in setup since we need
         // render widget to be resized yet ...
@@ -78,8 +83,6 @@ void WaveformRenderMark::draw(QPainter* painter, QPaintEvent* /*event*/) {
             }
         }
     }
-
-    painter->restore();
 }
 
 void WaveformRenderMark::onResize() {
@@ -96,8 +99,10 @@ void WaveformRenderMark::onSetTrack() {
     if (!trackInfo) {
         return;
     }
-    connect(trackInfo.get(), SIGNAL(cuesUpdated(void)),
-                  this, SLOT(slotCuesUpdated(void)));
+    connect(trackInfo.get(),
+            &Track::cuesUpdated,
+            this,
+            &WaveformRenderMark::slotCuesUpdated);
 }
 
 void WaveformRenderMark::slotCuesUpdated() {
